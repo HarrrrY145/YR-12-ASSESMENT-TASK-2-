@@ -2,18 +2,19 @@ import sqlite3 as sql
 import time
 import random
 
-
+# Inserting Users into a database
 def insertUser(username, password, DoB):
     con = sql.connect("database_files/database.db")
     cur = con.cursor()
     cur.execute(
+
+#CHECK FOR SQL INJECTION
         "INSERT INTO users (username,password,dateOfBirth) VALUES (?,?,?)",
-        (username, password, DoB),
-    )
+        (username, password, DoB),)
     con.commit()
     con.close()
 
-
+#CHECK FOR FILE SAFTEY 
 def retrieveUsers(username, password):
     con = sql.connect("database_files/database.db")
     cur = con.cursor()
@@ -38,15 +39,17 @@ def retrieveUsers(username, password):
             con.close()
             return True
 
-
+# Inserting feedback into a database
 def insertFeedback(feedback):
     con = sql.connect("database_files/database.db")
     cur = con.cursor()
-    cur.execute(f"INSERT INTO feedback (feedback) VALUES ('{feedback}')")
+
+#CHECK FOR SQL INJECTION
+    cur.execute("INSERT INTO feedback (feedback) VALUES (?)", (feedback,)) # Removing the F-string and implementimg query parameters to prevent SQL injections.
     con.commit()
     con.close()
 
-
+#CHECK FOR FILE SAFTEY 
 def listFeedback():
     con = sql.connect("database_files/database.db")
     cur = con.cursor()
