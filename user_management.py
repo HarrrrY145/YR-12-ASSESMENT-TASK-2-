@@ -3,13 +3,13 @@ import time
 import random
 
 # Inserting Users into a database
-def insertUser(username, password, DoB):
+def insertUser(username, hash, DoB):
     con = sql.connect("database_files/database.db")
     cur = con.cursor()
 
 
 #This is SQL injection proof. 
-    cur.execute("INSERT INTO users (username,password,dateOfBirth) VALUES (?,?,?)", (username, password, DoB),)
+    cur.execute("INSERT INTO users (username,password,dateOfBirth) VALUES (?,?,?)", (username, hash, DoB),)
     con.commit()
     con.close()
 
@@ -18,7 +18,7 @@ def retrieveUsers(username, password):
     con = sql.connect("database_files/database.db") #Connecting to database
     cur = con.cursor() 
 
-    cur.execute("SELECT * FROM users WHERE username == ?", (username)) # Selecting the username from database
+    cur.execute("SELECT * FROM users WHERE username == ?", (username,)) # Selecting the username from database
     if cur.fetchone() == None: # If no username is found in the database
         con.close() # Close database
         return False 
