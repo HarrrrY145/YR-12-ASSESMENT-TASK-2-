@@ -61,8 +61,8 @@ def home():
         return redirect(url, code=302)
     if request.method == "POST":
         username = request.form["username"]
-        password = request.form["password"]
-        isLoggedIn = dbHandler.retrieveUsers(username, password)
+        password_attempted = request.form["password"]
+        isLoggedIn = dbHandler.retrieveUsers(username, password_attempted)
         if isLoggedIn:
             dbHandler.listFeedback()
             return render_template("/success.html", value=username, state=isLoggedIn)
@@ -78,4 +78,4 @@ def csrf_test():
 if __name__ == "__main__":
     app.config["TEMPLATES_AUTO_RELOAD"] = True
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
-    app.run(debug=False, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000)
