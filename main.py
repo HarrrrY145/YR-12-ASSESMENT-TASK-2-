@@ -4,6 +4,7 @@ from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
 from waitress import serve
+from urllib.parse import urlparse, urljoin
 import os
 
 
@@ -18,12 +19,31 @@ print(app.secret_key)
 csrf = CSRFProtect(app)
 bcrypt = Bcrypt(app)
 
+#---------------------------------------------------------------------
+# Function for checking URLs 
+#---------------------------------------------------------------------
+def is_safe_url(target): # Checks if given URL is safe to redicrect to 
+    host_url = urlparse(request.host_url) # Websites base URL
+    redirect_url = urlparse(urljoin(request.host_url, target)) # Combinds the app URL with the user provided URL
 
+    return redirect_url.scheme in ("http", "https") and host_url.netloc == redirect_url.netloc # Returns True and False, only allowing web URLs (Blocking javascript attacks etc . .) and ensures the desination is the same domain as the app
+#---------------------------------------------------------------------                           
+
+
+
+#---------------------------------------------------------------------
+# Function for feedback
+#---------------------------------------------------------------------
 @app.route("/success.html", methods=["POST", "GET"])
 def addFeedback():
     if request.method == "GET" and request.args.get("url"):
         url = request.args.get("url", "")
-        return redirect(url, code=302)
+
+        if is_safe_url(url): 
+            return redirect(url, code=302)
+        else:
+            return redirect("/")
+
     if request.method == "POST":
         feedback = request.form["feedback"]
         dbHandler.insertFeedback(feedback)
@@ -32,13 +52,23 @@ def addFeedback():
     else:
         dbHandler.listFeedback()
         return render_template("/success.html", state=True, value="Back")
+#---------------------------------------------------------------------
 
 
+
+#---------------------------------------------------------------------
+# Function for signup
+#---------------------------------------------------------------------
 @app.route("/signup.html", methods=["POST", "GET"])
 def signup():
     if request.method == "GET" and request.args.get("url"):
-        url = request.args.get("url", "")
-        return redirect(url, code=302)
+        url = request.args.get("url", "") 
+
+        if is_safe_url(url): 
+            return redirect(url, code=302)
+        else:
+            return redirect("/")
+
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
@@ -51,14 +81,24 @@ def signup():
         return render_template("/index.html")
     else:
         return render_template("/signup.html")
+#---------------------------------------------------------------------
 
 
+
+#---------------------------------------------------------------------
+# Function for homepage
+#---------------------------------------------------------------------
 @app.route("/index.html", methods=["POST", "GET"])
 @app.route("/", methods=["POST", "GET"])
 def home():
     if request.method == "GET" and request.args.get("url"):
         url = request.args.get("url", "")
-        return redirect(url, code=302)
+        
+        if is_safe_url(url): 
+            return redirect(url, code=302)
+        else:
+            return redirect("/")
+
     if request.method == "POST":
         username = request.form["username"]
         password_attempted = request.form["password"]
@@ -70,10 +110,17 @@ def home():
             return render_template("/index.html")
     else:
         return render_template("/index.html")
+#---------------------------------------------------------------------
 
+
+
+#---------------------------------------------------------------------
+# CSRF TOKENS
+#---------------------------------------------------------------------
 @app.route('/csrf_test')
 def csrf_test():
     return f"Token: {csrf.generate_csrf()}"
+#---------------------------------------------------------------------
 
 if __name__ == "__main__":
     app.config["TEMPLATES_AUTO_RELOAD"] = True
