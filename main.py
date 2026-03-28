@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, send_file
+from flask import Flask, render_template, request, redirect, session, send_file, url_for
 import user_management as dbHandler
 from flask_bcrypt import Bcrypt 
 from dotenv import load_dotenv
@@ -6,6 +6,11 @@ from flask_wtf.csrf import CSRFProtect
 from waitress import serve
 from urllib.parse import urlparse, urljoin
 import os
+import pyotp
+import pyqrcode
+import base64
+from io import BytesIO
+
 
 
 # Code snippet for logging a message
@@ -61,6 +66,8 @@ def addFeedback():
 #---------------------------------------------------------------------
 @app.route("/signup.html", methods=["POST", "GET"])
 def signup():
+
+    
     if request.method == "GET" and request.args.get("url"):
         url = request.args.get("url", "") 
 
@@ -91,9 +98,10 @@ def signup():
 @app.route("/index.html", methods=["POST", "GET"])
 @app.route("/", methods=["POST", "GET"])
 def home():
+    
     if request.method == "GET" and request.args.get("url"):
         url = request.args.get("url", "")
-        
+
         if is_safe_url(url): 
             return redirect(url, code=302)
         else:
@@ -103,15 +111,44 @@ def home():
         username = request.form["username"]
         password_attempted = request.form["password"]
         isLoggedIn = dbHandler.retrieveUsers(username, password_attempted)
+
         if isLoggedIn:
-            dbHandler.listFeedback()
-            return render_template("/success.html", value=username, state=isLoggedIn)
-        else:
-            return render_template("/index.html")
+            # Generating a 2FA secret for this session 
+            user_secret = pyotp.random_base32() #generate the one-time passcode
+            session['2fa_secret'] = user_secret
+            session['username'] = username
+            return redirect(url_for('enable_2fa')) #redirect to 2FA page
     else:
         return render_template("/index.html")
 #---------------------------------------------------------------------
 
+@app.route("/2fa", methods=["GET","POST"])
+def enable_2fa():
+    username = session.get('username')
+    user_secret = session.get('2fa_secret')
+
+    if not username or not user_secret:
+        return redirect(url_for('home'))
+    
+    totp = pyotp.TOTP(user_secret)
+    otp_uri = totp.provisioning_uri(name=username,issuer_name="YourAppName")
+    qr_code = pyqrcode.create(otp_uri)
+    stream = BytesIO()
+    qr_code.png(stream, scale=5)
+    qr_code_b64 = base64.b64encode(stream.getvalue()).decode('utf-8')
+
+    if request.method == 'POST':
+        otp_input = request.form['otp']
+        if totp.verify(otp_input):
+            session['logged_in'] = True
+            return render_template("success.html", value=username, state=True)
+        else:
+            # Clear session and redirect to login
+            session.pop('2fa_secret', None)
+            session.pop('username', None)
+            return redirect(url_for('home'))
+        
+    return render_template('2fa.html', qr_code=qr_code_b64, value=username)
 
 
 #---------------------------------------------------------------------
