@@ -1,4 +1,5 @@
 import sqlite3 as sql
+import html
 import time
 import random
 from flask_bcrypt import Bcrypt 
@@ -78,6 +79,7 @@ def listFeedback():
     f = open("templates/partials/success_feedback.html", "w") # Open the success feedback html file as 'write' 
     for row in data: # For every row 
         f.write("<p>\n") # New line
-        f.write(f"{row[1]}\n") # Write feedback
+        safe_feedback = html.escape(row[1]) #Escape special HTML characters
+        f.write(f"{row[1]}\n") # Write escaped feedback 
         f.write("</p>\n") # New line
     f.close() # Close file
