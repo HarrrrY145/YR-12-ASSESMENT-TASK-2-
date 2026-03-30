@@ -80,6 +80,6 @@ def listFeedback():
     for row in data: # For every row 
         f.write("<p>\n") # New line
         safe_feedback = html.escape(row[1]) #Escape special HTML characters
-        f.write(f"{row[1]}\n") # Write escaped feedback 
+        f.write(f"{safe_feedback}\n") # Write escaped feedback 
         f.write("</p>\n") # New line
     f.close() # Close file
